@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnet Link Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 500;
+        }
+
+        #status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        #status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+
+        #status.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        #video-container {
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            display: none;
+            background: #000;
+        }
+
+        video {
+            width: 100%;
+            max-height: 500px;
+            display: block;
+        }
+
+        .stats {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .stats.active {
+            display: block;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .stat-label {
+            font-weight: 600;
+        }
+
+        .file-list {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .file-list.active {
+            display: block;
+        }
+
+        .file-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:hover {
+            background: #e0e0e0;
+        }
+
+        .file-item.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        .file-name {
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .file-item.selected .file-size {
+            color: #fff;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .examples {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .examples h3 {
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .examples p {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .examples code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧲 Magnet Link Player</h1>
+        <p class="subtitle">Stream and play videos from magnet links directly in your browser</p>
+
+        <div class="input-group">
+            <label for="magnetLink">Enter Magnet Link:</label>
+            <input 
+                type="text" 
+                id="magnetLink" 
+                placeholder="magnet:?xt=urn:btih:..."
+                autocomplete="off"
+            >
+        </div>
+
+        <div class="button-group">
+            <button id="loadBtn">Load Magnet Link</button>
+            <button id="stopBtn" disabled>Stop</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <div id="video-container">
+            <video id="video" controls autoplay></video>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-row">
+                <span class="stat-label">Download Speed:</span>
+                <span id="downloadSpeed">0 KB/s</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Upload Speed:</span>
+                <span id="uploadSpeed">0 KB/s</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Peers:</span>
+                <span id="numPeers">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Progress:</span>
+                <span id="progress">0%</span>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>📝 How to use:</h3>
+            <p>
+                1. Paste a magnet link in the input field above<br>
+                2. Click "Load Magnet Link" to start downloading<br>
+                3. If there are multiple files, select the video file you want to play<br>
+                4. The video will start playing automatically as it downloads<br>
+                <br>
+                <strong>Note:</strong> This player uses WebTorrent technology to stream videos directly in your browser using WebRTC. Make sure your browser supports WebRTC (Chrome, Firefox, Edge, Opera).
+            </p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    <script>
+        const client = new WebTorrent();
+        let currentTorrent = null;
+
+        const magnetInput = document.getElementById('magnetLink');
+        const loadBtn = document.getElementById('loadBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const videoContainer = document.getElementById('video-container');
+        const video = document.getElementById('video');
+        const fileList = document.getElementById('fileList');
+        const stats = document.getElementById('stats');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+
+        function showStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = type;
+            statusDiv.style.display = 'block';
+        }
+
+        function hideStatus() {
+            statusDiv.style.display = 'none';
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function updateStats() {
+            if (!currentTorrent) return;
+
+            document.getElementById('downloadSpeed').textContent = formatBytes(currentTorrent.downloadSpeed) + '/s';
+            document.getElementById('uploadSpeed').textContent = formatBytes(currentTorrent.uploadSpeed) + '/s';
+            document.getElementById('numPeers').textContent = currentTorrent.numPeers;
+            document.getElementById('progress').textContent = (currentTorrent.progress * 100).toFixed(2) + '%';
+            progressFill.style.width = (currentTorrent.progress * 100) + '%';
+        }
+
+        function playFile(file) {
+            showStatus('Preparing video player...', 'info');
+            
+            file.renderTo(video, {
+                autoplay: true,
+                controls: true
+            }, () => {
+                showStatus('Video is ready! Starting playback...', 'success');
+                videoContainer.style.display = 'block';
+                setTimeout(hideStatus, 3000);
+            });
+
+            // Update file selection UI
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.closest('.file-item').classList.add('selected');
+        }
+
+        function displayFiles(torrent) {
+            const videoExtensions = ['.mp4', '.webm', '.ogg', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.m4v'];
+            const videoFiles = torrent.files.filter(file => 
+                videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
+            );
+
+            if (videoFiles.length === 0) {
+                showStatus('No video files found in this torrent', 'error');
+                return;
+            }
+
+            fileList.innerHTML = '<h3 style="color: #555; margin-bottom: 10px;">Select a video file:</h3>';
+            
+            videoFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatBytes(file.length)}</span>
+                `;
+                fileItem.addEventListener('click', () => playFile(file));
+                fileList.appendChild(fileItem);
+
+                // Auto-play first video file
+                if (index === 0) {
+                    fileItem.classList.add('selected');
+                    playFile(file);
+                }
+            });
+
+            fileList.classList.add('active');
+        }
+
+        loadBtn.addEventListener('click', () => {
+            const magnetLink = magnetInput.value.trim();
+
+            if (!magnetLink) {
+                showStatus('Please enter a magnet link', 'error');
+                return;
+            }
+
+            if (!magnetLink.startsWith('magnet:')) {
+                showStatus('Invalid magnet link. Must start with "magnet:"', 'error');
+                return;
+            }
+
+            // Reset UI
+            videoContainer.style.display = 'none';
+            fileList.classList.remove('active');
+            fileList.innerHTML = '';
+            stats.classList.remove('active');
+            progressBar.classList.remove('active');
+            video.src = '';
+
+            showStatus('Connecting to peers...', 'info');
+            loadBtn.disabled = true;
+            stopBtn.disabled = false;
+
+            currentTorrent = client.add(magnetLink, {
+                announce: [
+                    'wss://tracker.btorrent.xyz',
+                    'wss://tracker.openwebtorrent.com',
+                    'wss://tracker.fastcast.nz'
+                ]
+            });
+
+            currentTorrent.on('metadata', () => {
+                showStatus(`Got torrent metadata: ${currentTorrent.name}`, 'success');
+            });
+
+            currentTorrent.on('ready', () => {
+                showStatus('Torrent is ready! Finding video files...', 'success');
+                stats.classList.add('active');
+                progressBar.classList.add('active');
+                displayFiles(currentTorrent);
+
+                // Update stats every second
+                const statsInterval = setInterval(() => {
+                    if (currentTorrent) {
+                        updateStats();
+                    } else {
+                        clearInterval(statsInterval);
+                    }
+                }, 1000);
+            });
+
+            currentTorrent.on('error', (err) => {
+                showStatus(`Error: ${err.message}`, 'error');
+                loadBtn.disabled = false;
+                stopBtn.disabled = true;
+                console.error('Torrent error:', err);
+            });
+
+            currentTorrent.on('warning', (err) => {
+                console.warn('Torrent warning:', err);
+            });
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (currentTorrent) {
+                showStatus('Stopping torrent...', 'info');
+                currentTorrent.destroy(() => {
+                    showStatus('Torrent stopped', 'info');
+                    currentTorrent = null;
+                    loadBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    videoContainer.style.display = 'none';
+                    fileList.classList.remove('active');
+                    stats.classList.remove('active');
+                    progressBar.classList.remove('active');
+                    video.src = '';
+                    setTimeout(hideStatus, 2000);
+                });
+            }
+        });
+
+        // Allow loading magnet link by pressing Enter
+        magnetInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !loadBtn.disabled) {
+                loadBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
