@@ -324,7 +324,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+    <script src="https://unpkg.com/webtorrent@latest/webtorrent.min.js"></script>
     <script>
         const client = new WebTorrent();
         let currentTorrent = null;
@@ -368,8 +368,14 @@
             progressFill.style.width = (currentTorrent.progress * 100) + '%';
         }
 
-        function playFile(file) {
+        function playFile(file, clickedElement) {
             showStatus('Preparing video player...', 'info');
+            
+            // Deselect all files first to avoid downloading unwanted content
+            currentTorrent.files.forEach(f => f.deselect());
+            
+            // Select only this file with priority on the first pieces for better streaming
+            file.select();
             
             file.renderTo(video, {
                 autoplay: true,
@@ -379,12 +385,28 @@
                 videoContainer.style.display = 'block';
                 setTimeout(hideStatus, 3000);
             });
+            
+            // Add event listeners for better streaming feedback
+            video.addEventListener('waiting', () => {
+                showStatus('Buffering...', 'info');
+            });
+            
+            video.addEventListener('playing', () => {
+                hideStatus();
+            });
+            
+            video.addEventListener('error', (e) => {
+                showStatus('Video playback error. Please wait for more data to download.', 'error');
+                console.error('Video error:', e);
+            });
 
             // Update file selection UI
             document.querySelectorAll('.file-item').forEach(item => {
                 item.classList.remove('selected');
             });
-            event.target.closest('.file-item').classList.add('selected');
+            if (clickedElement) {
+                clickedElement.classList.add('selected');
+            }
         }
 
         function displayFiles(torrent) {
@@ -407,13 +429,15 @@
                     <span class="file-name">${file.name}</span>
                     <span class="file-size">${formatBytes(file.length)}</span>
                 `;
-                fileItem.addEventListener('click', () => playFile(file));
+                fileItem.addEventListener('click', (e) => {
+                    playFile(file, fileItem);
+                });
                 fileList.appendChild(fileItem);
 
                 // Auto-play first video file
                 if (index === 0) {
                     fileItem.classList.add('selected');
-                    playFile(file);
+                    playFile(file, fileItem);
                 }
             });
 
@@ -447,10 +471,15 @@
 
             currentTorrent = client.add(magnetLink, {
                 announce: [
+                    // WebSocket trackers (for WebTorrent)
                     'wss://tracker.btorrent.xyz',
                     'wss://tracker.openwebtorrent.com',
-                    'wss://tracker.fastcast.nz'
-                ]
+                    'wss://tracker.fastcast.nz',
+                    'wss://tracker.webtorrent.dev',
+                    'wss://tracker.files.fm:7073/announce'
+                ],
+                // Enable sequential downloading for better streaming
+                strategy: 'sequential'
             });
 
             currentTorrent.on('metadata', () => {
@@ -461,6 +490,10 @@
                 showStatus('Torrent is ready! Finding video files...', 'success');
                 stats.classList.add('active');
                 progressBar.classList.add('active');
+                
+                // Deselect all files initially to save bandwidth
+                currentTorrent.files.forEach(file => file.deselect());
+                
                 displayFiles(currentTorrent);
 
                 // Update stats every second
@@ -483,6 +516,17 @@
             currentTorrent.on('warning', (err) => {
                 console.warn('Torrent warning:', err);
             });
+            
+            currentTorrent.on('noPeers', () => {
+                showStatus('No peers found. Trying to connect...', 'info');
+            });
+            
+            // Add a timeout for peer connection
+            setTimeout(() => {
+                if (currentTorrent && currentTorrent.numPeers === 0) {
+                    showStatus('Having trouble finding peers. Please wait or try a different magnet link.', 'info');
+                }
+            }, 10000);
         });
 
         stopBtn.addEventListener('click', () => {
